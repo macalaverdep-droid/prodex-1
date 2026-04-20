@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRODEX - Business Intelligence para PyMEs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .chart-container { position: relative; height: 280px; width: 100%; }
+        .premium-lock { position: relative; overflow: hidden; }
+        .premium-lock::after {
+            content: "🔒 Función Premium";
+            position: absolute; inset: 0;
+            background: rgba(255, 255, 255, 0.7);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #4f46e5; backdrop-filter: blur(2px);
+        }
+        .view-animate { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+
+    <div id="onboarding-modal" class="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4">
+        <div class="bg-white p-8 rounded-3xl max-w-md w-full shadow-2xl">
+            <h2 class="text-2xl font-black mb-2 text-indigo-600">Bienvenido a PRODEX</h2>
+            <p class="text-slate-500 mb-6 text-sm">Ingresa tus datos para profesionalizar tu comercio hoy mismo.</p>
+            <form onsubmit="saveUser(event)" class="space-y-4">
+                <input type="text" id="user-name" placeholder="Nombre Completo" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="text" id="business-name" placeholder="Nombre de tu Empresa" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="email" id="user-email" placeholder="Correo Electrónico" required class="w-full p-3 rounded-xl border border-slate-200 outline-none focus:ring-2 focus:ring-indigo-500">
+                <label class="flex items-start gap-2 py-2 cursor-pointer">
+                    <input type="checkbox" required class="mt-1">
+                    <p class="text-[10px] text-slate-400">Acepto términos y políticas de tratamiento de datos con seguridad SSL.</p>
+                </label>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-3 rounded-xl hover:bg-indigo-700 transition transform hover:scale-[1.02]">Activar PRODEX</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="premium-ad" class="fixed bottom-6 right-6 z-[90] max-w-xs hidden view-animate">
+        <div class="bg-gradient-to-br from-indigo-700 to-purple-800 text-white p-5 rounded-3xl shadow-2xl relative">
+            <button onclick="this.parentElement.parentElement.remove()" class="absolute top-2 right-2 opacity-50 hover:opacity-100"><i data-lucide="x" class="w-4 h-4"></i></button>
+            <div class="bg-yellow-400 text-indigo-900 text-[10px] font-black px-2 py-1 rounded-lg inline-block mb-2 uppercase">Oferta de Lanzamiento</div>
+            <h4 class="font-bold text-sm mb-1">¡Desbloquea el poder total!</h4>
+            <p class="text-[11px] opacity-90 mb-3">Sincroniza Google Calendar y obtén reportes de tendencias globales por solo <b>$1.99/mes</b>.</p>
+            <button onclick="showPremiumAlert()" class="w-full py-2 bg-white text-indigo-600 rounded-xl font-bold text-xs hover:bg-indigo-50 transition">Obtener Premium</button>
+        </div>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+        <aside class="w-64 bg-slate-900 text-white flex flex-col p-5">
+            <div class="flex items-center gap-3 mb-10">
+                <div class="bg-indigo-600 p-2 rounded-xl"><i data-lucide="brain-circuit"></i></div>
+                <span class="text-2xl font-black tracking-tight uppercase">PRODEX</span>
+            </div>
+            
+            <nav class="space-y-2 flex-grow">
+                <button onclick="switchTab('dashboard')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition active-tab"><i data-lucide="layout-dashboard"></i> Dashboard</button>
+                <button onclick="switchTab('inventario')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i data-lucide="package"></i> Inventario</button>
+                <button onclick="switchTab('descripcion')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i data-lucide="file-text"></i> Descripción</button>
+                <button onclick="switchTab('ayuda')" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-800 transition"><i data-lucide="help-circle"></i> Ayuda</button>
+            </nav>
+
+            <div class="mt-4 p-4 bg-slate-800 rounded-2xl border border-slate-700">
+                <div class="flex items-center gap-2 mb-2 text-indigo-400"><i data-lucide="user" class="w-4 h-4"></i> <span id="display-user" class="text-xs font-bold">Invitado</span></div>
+                <button onclick="showPremiumAlert()" class="w-full py-2 bg-indigo-600 text-[10px] font-bold rounded-lg hover:bg-indigo-500 uppercase tracking-tighter italic">Mejorar a Premium 🚀</button>
+            </div>
+        </aside>
+
+        <main class="flex-grow overflow-y-auto p-8 relative">
+            
+            <div id="view-dashboard" class="view-animate space-y-8">
+                <div class="flex justify-between items-end">
+                    <div>
+                        <h1 class="text-3xl font-black">Panel de Inteligencia</h1>
+                        <p class="text-slate-500">Visualización de datos y métricas en tiempo real.</p>
+                    </div>
+                    <button onclick="showPremiumAlert()" class="bg-white border border-slate-200 px-4 py-2 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-50 transition">
+                        <img src="https://www.google.com/favicon.ico" class="w-4 h-4"> Sincronizar Google Calendar
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold mb-6 text-slate-700">Flujo de Ventas (Sanalítica)</h3>
+                        <div class="chart-container"><canvas id="salesChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                        <h3 class="font-bold mb-6 text-slate-700">Consumo por Género (%)</h3>
+                        <div class="chart-container"><canvas id="demoChart"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-8 rounded-3xl border border-slate-100 premium-lock">
+                    <h3 class="font-bold mb-4">Reportes Predictivos de Tendencias Globales</h3>
+                    <p class="text-xs text-slate-400">Esta sección utiliza IA para comparar tu negocio con comercios de otras ciudades.</p>
+                </div>
+            </div>
+
+            <div id="view-inventario" class="hidden view-animate">
+                <h2 class="text-2xl font-black mb-8 italic">Catálogo de Productos Profesionales</h2>
+                <div id="inventory-grid" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    </div>
+            </div>
+
+            <div id="view-descripcion" class="hidden view-animate max-w-4xl">
+                <h2 class="text-3xl font-black mb-6">PRODEX: El Proyecto</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div class="bg-indigo-600 text-white p-8 rounded-3xl">
+                        <h3 class="text-xl font-bold mb-4 italic">¿Qué es PRODEX?</h3>
+                        <p class="text-sm opacity-90 leading-relaxed">Es una plataforma integral de <b>Business Intelligence</b> diseñada para cerrar la brecha digital en PyMEs. No es solo un inventario; es un motor de análisis que transforma datos brutos en decisiones estratégicas.</p>
+                    </div>
+                    <div class="bg-white border-4 border-indigo-600 p-8 rounded-3xl">
+                        <h3 class="text-xl font-bold mb-4 italic text-indigo-600">Metodología SESA</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">Utiliza la metodología de <b>Sustitución, Enriquecimiento, Seguimiento y Ampliación</b> para procesar el stock. Predice cuándo un producto se agotará antes de que ocurra.</p>
+                    </div>
+                </div>
+                <div class="bg-slate-900 text-white p-8 rounded-[2rem] flex flex-col md:flex-row gap-8">
+                    <div class="flex-1"><p class="font-bold mb-1">Análisis Predictivo</p><p class="text-[10px] opacity-60">Gestión de inventario con IA para evitar pérdidas financieras.</p></div>
+                    <div class="flex-1"><p class="font-bold mb-1">Benchmarking</p><p class="text-[10px] opacity-60">Comparativa en tiempo real con estándares de calidad y precios globales.</p></div>
+                    <div class="flex-1"><p class="font-bold mb-1">Inclusión Digital</p><p class="text-[10px] opacity-60">Operación robusta diseñada para comerciantes con baja conectividad.</p></div>
+                </div>
+            </div>
+
+            <div id="view-ayuda" class="hidden view-animate max-w-3xl">
+                <h2 class="text-2xl font-black mb-8">Centro de Asesoría</h2>
+                <div class="space-y-4">
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-indigo-600 mb-2 underline italic">¿Cómo registrar ventas?</h4>
+                        <p class="text-xs text-slate-500">Ve a 'Inventario' y selecciona el producto. Al vender, la IA registra automáticamente si fue Hombre, Mujer o Niño para tus estadísticas.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-2xl border border-slate-100">
+                        <h4 class="font-bold text-indigo-600 mb-2 underline italic">¿Para qué sirve el botón de Calidad?</h4>
+                        <p class="text-xs text-slate-500">Este botón busca en Google y Mercado Libre (simulado) para compararte con la competencia y decirte si tus ingredientes son de alta gama.</p>
+                    </div>
+                    <div class="bg-indigo-50 p-6 rounded-2xl border border-indigo-100 text-center">
+                        <p class="text-sm font-bold text-indigo-900 mb-2 italic">¿Necesitas asesoría técnica personalizada?</p>
+                        <button class="bg-indigo-600 text-white px-6 py-2 rounded-xl text-xs font-bold">Hablar con un Ingeniero</button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <footer class="fixed bottom-4 left-64 right-8 flex justify-end gap-6 pointer-events-none opacity-40">
+        <div class="flex items-center gap-2 text-[10px] font-black uppercase"><i data-lucide="shield-check" class="w-3 h-3 text-green-500"></i> SSL Secure Connection</div>
+        <div class="flex items-center gap-2 text-[10px] font-black uppercase"><i data-lucide="lock" class="w-3 h-3 text-green-500"></i> Datos Encriptados</div>
+    </footer>
+
+    <script>
+        // DATOS UNIFICADOS
+        let INVENTORY = [
+            { id: 1, name: 'Harina Integral', marca: 'Haz de Oros', stock: 45, precio: 12.5, stars: 4.8, info: 'Trigo, Vitaminas D', pop: 'Mujeres (60%)' },
+            { id: 2, name: 'Aceite Girasol', marca: 'Premier', stock: 12, precio: 32.0, stars: 4.2, info: 'Semillas Girasol', pop: 'Hombres (45%)' },
+            { id: 3, name: 'Café Molido', marca: 'Sello Rojo', stock: 85, precio: 8.5, stars: 4.9, info: 'Grano Colombiano', pop: 'General (100%)' }
+        ];
+
+        // NAVEGACIÓN
+        function switchTab(id) {
+            document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+            document.getElementById('view-' + id).classList.remove('hidden');
+            if(id === 'inventario') renderInventory();
+            if(id === 'dashboard') initCharts();
+        }
+
+        // REGISTRO
+        function saveUser(e) {
+            e.preventDefault();
+            const name = document.getElementById('user-name').value;
+            localStorage.setItem('prodex_user', name);
+            document.getElementById('onboarding-modal').classList.add('hidden');
+            document.getElementById('display-user').innerText = name;
+            setTimeout(() => { document.getElementById('premium-ad').classList.remove('hidden'); }, 3000);
+        }
+
+        // INVENTARIO ESTILO MARKETPLACE
+        function renderInventory() {
+            const grid = document.getElementById('inventory-grid');
+            grid.innerHTML = INVENTORY.map(i => `
+                <div class="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden hover:shadow-xl transition-all duration-300">
+                    <div class="h-40 bg-slate-100 flex items-center justify-center text-slate-300"><i data-lucide="image" class="w-12 h-12"></i></div>
+                    <div class="p-6">
+                        <div class="flex justify-between mb-2">
+                            <h4 class="font-bold">${i.name}</h4>
+                            <span class="text-xs bg-yellow-400 text-indigo-900 px-2 py-1 rounded-full font-black">⭐ ${i.stars}</span>
+                        </div>
+                        <p class="text-indigo-600 text-[10px] font-black uppercase mb-3">${i.marca}</p>
+                        <p class="text-[10px] text-slate-400 mb-4 italic">Ingredientes: ${i.info}</p>
+                        <div class="flex justify-between items-center pt-4 border-t border-slate-50">
+                            <span class="text-2xl font-black text-slate-800">$${i.precio}</span>
+                            <button onclick="showPremiumAlert()" class="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-bold hover:bg-indigo-600">Ver Calidad</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // OFERTA PREMIUM
+        function showPremiumAlert() {
+            alert("✨ OFERTA PREMIUM EXCLUSIVA ✨\n\nEstás a un paso de la versión PRO. Beneficios:\n1. Conexión real con Google Calendar.\n2. IA de comparación de ingredientes externa.\n3. Tendencias de moda en tiempo real.\n\n¡Consíguelo por solo $1.99 USD!");
+        }
+
+        // GRÁFICOS (RESTAURADOS DEL CÓDIGO 1)
+        function initCharts() {
+            const ctxSales = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctxSales, {
+                type: 'line',
+                data: {
+                    labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'],
+                    datasets: [{ label: 'Ventas', data: [10, 25, 15, 30, 20, 45], borderColor: '#4f46e5', tension: 0.4, fill: true, backgroundColor: 'rgba(79, 70, 229, 0.05)' }]
+                },
+                options: { maintainAspectRatio: false }
+            });
+
+            const ctxDemo = document.getElementById('demoChart').getContext('2d');
+            new Chart(ctxDemo, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Hombres', 'Mujeres', 'Niños'],
+                    datasets: [{ data: [35, 45, 20], backgroundColor: ['#4f46e5', '#ec4899', '#f59e0b'], borderWidth: 0 }]
+                },
+                options: { maintainAspectRatio: false, cutout: '70%' }
+            });
+        }
+
+        // INICIO
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            const saved = localStorage.getItem('prodex_user');
+            if(saved) {
+                document.getElementById('onboarding-modal').classList.add('hidden');
+                document.getElementById('display-user').innerText = saved;
+            }
+            initCharts();
+        });
+    </script>
+</body>
+</html>
